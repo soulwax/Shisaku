@@ -13,8 +13,7 @@ An Astro-powered, database-backed devlog for experiments, notes, and shipped lit
 | `astro dev stop` | Stop the background dev server |
 | `pnpm run check` | Type-check Astro and TypeScript |
 | `pnpm run test` | Run the unit tests |
-| `pnpm run build` | Build the standalone Node server to `./dist/` |
-| `pnpm run start` | Run the built standalone Node server |
+| `pnpm run build` | Build the Vercel serverless output |
 | `pnpm run db:generate` | Generate a Drizzle migration |
 | `pnpm run db:migrate` | Apply migrations with the direct PostgreSQL connection |
 | `pnpm run seed:posts` | Idempotently seed the original starter posts |
@@ -41,8 +40,9 @@ package.json
 Static assets live in `public/`. Published and draft posts live in Neon Postgres. The original
 starter entries are retained in `scripts/seed-content/` as migration inputs.
 
-Local environment variables are loaded explicitly from `../Shisaku/.env`. GitHub OAuth is
-restricted to the `soulwax` account and a verified `users.noreply.github.com` email address.
+Local environment variables are loaded from `.env.local`, falling back to `../Shisaku/.env`.
+Vercel deployments use encrypted project environment variables. GitHub OAuth is restricted to
+the `soulwax` account and a verified `users.noreply.github.com` email address.
 
 The GitHub OAuth app callback URL is:
 
@@ -51,6 +51,39 @@ https://blog.shisaku.dev/admin/oauth/github/callback
 ```
 
 For a fresh environment, run `pnpm run db:migrate` followed by `pnpm run seed:posts`.
+
+## Vercel
+
+The repository is configured for Astro SSR with `@astrojs/vercel`. Required encrypted variables:
+
+```text
+DATABASE_URL
+DATABASE_URL_UNPOOLED
+REDIS_URL
+GITHUB_CLIENT_ID
+GITHUB_CLIENT_SECRET
+GITHUB_ALLOWED_EMAIL_SUFFIX
+```
+
+Set `GITHUB_ALLOWED_EMAIL_SUFFIX` to `users.noreply.github.com`. Apply database migrations before
+promoting a deployment. The GitHub OAuth callback must remain the production URL shown above.
+
+From this linked project directory, set or update secrets with:
+
+```sh
+vercel env add DATABASE_URL production preview development
+vercel env add DATABASE_URL_UNPOOLED production preview development
+vercel env add REDIS_URL production preview development
+vercel env add GITHUB_CLIENT_ID production preview development
+vercel env add GITHUB_CLIENT_SECRET production preview development
+vercel env add GITHUB_ALLOWED_EMAIL_SUFFIX production preview development
+```
+
+Then pull local Vercel variables when needed:
+
+```sh
+vercel env pull .env.local --yes --environment=production
+```
 
 ## Credit
 
