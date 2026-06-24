@@ -1,21 +1,11 @@
----
-const today = new Date();
----
-
-<footer>
-	<span>&copy; {today.getFullYear()} shisaku.</span>
-	<span>Notes, builds, and small useful artifacts.</span>
+<footer class="site-foot">
+	<div class="site-foot-in">
+		<a href="/rss.xml">feed.xml</a>
+		<span class="dot">·</span>
+		<a href="/">latest</a>
+		<span class="dot">·</span>
+		<span>built in the open</span>
+		<span class="spacer"></span>
+		<span>blog.shisaku.dev</span>
+	</div>
 </footer>
-<style>
-	footer {
-		display: flex;
-		flex-wrap: wrap;
-		justify-content: center;
-		gap: 0.5rem 1rem;
-		padding: 2em 1em 6em 1em;
-		background: var(--surface);
-		border-top: 1px solid var(--border);
-		color: var(--muted);
-		text-align: center;
-	}
-</style>

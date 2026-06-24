@@ -1,96 +1,36 @@
 ---
+import { getCollection } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
+import FeedList from '../components/FeedList.astro';
 import Footer from '../components/Footer.astro';
 import Header from '../components/Header.astro';
 import { SITE_DESCRIPTION, SITE_TITLE } from '../consts';
+
+const posts = (await getCollection('blog')).sort(
+	(a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf(),
+);
 ---
 
 <!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+		<BaseHead title={`${SITE_TITLE} · devlog`} description={SITE_DESCRIPTION} />
 	</head>
 	<body>
 		<Header />
-		<main>
-			<section class="hero">
-				<div class="hero-mark" aria-hidden="true">
-					<img src="/bluesix-dev-symbol.png" alt="" />
-				</div>
-				<p class="eyebrow">Devlog</p>
-				<h1>shisaku</h1>
-				<p>
-					A quiet record of experiments in code, design, systems, and the little decisions that
-					make a build feel alive.
-				</p>
-				<a class="button" href="/blog">Read the log</a>
-			</section>
-			<section class="notes">
-				<p>
-					This space collects working notes, prototypes, release thoughts, and technical sketches as
-					they take shape.
-				</p>
-			</section>
+		<main class="wrap feed-page">
+			<div class="prompt">$ ls -t devlog/ <span class="cursor"></span></div>
+			<p class="feed-intro">
+				<span class="c">//</span> notes from building <strong>EchoWarrior</strong> and the tools around
+				it. A dark-first devlog about games, systems, and work that can be opened up, inspected,
+				and changed.
+			</p>
+			<FeedList posts={posts} />
+			<div class="feed-empty">
+				<span class="c2">//</span> more as the build continues
+				<span class="cursor" style="height:13px;"></span>
+			</div>
 		</main>
 		<Footer />
 	</body>
 </html>
-<style>
-	main {
-		width: 960px;
-	}
-	.hero {
-		padding: 5rem 0 3rem;
-	}
-	.hero-mark {
-		width: 120px;
-		margin-bottom: 2rem;
-	}
-	.hero-mark img {
-		display: block;
-		width: 120px;
-		height: auto;
-		border-radius: 0;
-	}
-	.eyebrow {
-		display: inline-block;
-		margin: 0 0 1rem;
-		padding: 0.18rem 0.65rem;
-		background: color-mix(in srgb, var(--accent-soft) 42%, transparent);
-		border: 1px solid var(--border);
-		border-radius: 999px;
-		color: var(--primary);
-		font-size: 0.85rem;
-		font-weight: 700;
-		line-height: 1.4;
-	}
-	.hero h1 {
-		margin-bottom: 1rem;
-		font-size: clamp(3rem, 12vw, 7rem);
-	}
-	.hero p:not(.eyebrow) {
-		max-width: 680px;
-		color: var(--muted);
-		font-size: 1.25rem;
-	}
-	.button {
-		display: inline-block;
-		margin-top: 0.75rem;
-		padding: 0.75rem 1rem;
-		background: var(--primary);
-		border-radius: 8px;
-		color: #fdfbf7;
-		font-weight: 700;
-		text-decoration: none;
-	}
-	.button:hover {
-		background: var(--primary-strong);
-		color: #fdfbf7;
-	}
-	.notes {
-		margin: 2rem 0 3rem;
-		padding-top: 2rem;
-		border-top: 1px solid var(--border);
-		color: var(--muted);
-	}
-</style>

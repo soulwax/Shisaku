@@ -4,7 +4,6 @@
 import '../styles/global.css';
 import type { ImageMetadata } from 'astro';
 import { SITE_TITLE } from '../consts';
-import { Font } from 'astro:assets';
 
 interface Props {
 	title: string;
@@ -32,7 +31,23 @@ const socialImage = new URL(image?.src ?? '/shisaku-social.svg', Astro.url);
 />
 <meta name="generator" content={Astro.generator} />
 
-<Font cssVariable="--font-atkinson" preload />
+<!-- Fonts (Shisaku design source of truth) -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=Spline+Sans+Mono:wght@400;500;600&display=swap"
+	rel="stylesheet"
+/>
+
+<!-- No-flash theme init: follows system on first visit, remembers manual choice -->
+<script is:inline>
+	(function () {
+		var k = 'shisaku-theme';
+		var s = localStorage.getItem(k);
+		var t = s || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+		document.documentElement.setAttribute('data-theme', t);
+	})();
+</script>
 
 <!-- Canonical URL -->
 <link rel="canonical" href={canonicalURL} />

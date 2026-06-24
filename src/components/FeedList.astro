@@ -1,0 +1,56 @@
+---
+import type { CollectionEntry } from 'astro:content';
+
+interface Props {
+	posts: CollectionEntry<'blog'>[];
+}
+
+const { posts } = Astro.props;
+
+const formatFeedDate = (date: Date) =>
+	date
+		.toISOString()
+		.slice(0, 10)
+		.replaceAll('-', '.');
+
+const estimateReadMinutes = (body = '') => Math.max(1, Math.ceil(body.split(/\s+/).length / 220));
+---
+
+<div class="feed">
+	{
+		posts.map((post, index) => (
+			<a class:list={['entry', { featured: index === 0 }]} href={`/blog/${post.id}/`}>
+				<div class="entry-meta">
+					<span>{formatFeedDate(post.data.pubDate)}</span>
+					<span class="sep">&middot;</span>
+					<span class="badge">{index === 0 ? 'latest' : 'note'}</span>
+					<span class="sep">&middot;</span>
+					<span>~{estimateReadMinutes(post.body)} min read</span>
+				</div>
+				<div class="entry-title">
+					<span class="caret">&gt;</span> {post.data.title}
+				</div>
+				<p class="entry-dek">{post.data.description}</p>
+				<div class="entry-foot">
+					<div class="entry-tags">
+						<span class="tag">+devlog</span>
+						<span class="tag">+build-notes</span>
+						{post.data.updatedDate && <span class="tag">+updated</span>}
+					</div>
+					<span class="entry-read">
+						read <span class="arr">-&gt;</span>
+					</span>
+				</div>
+			</a>
+		))
+	}
+</div>
+
+{
+	posts.length === 0 && (
+		<div class="feed-empty">
+			<span class="c2">//</span> no entries yet
+			<span class="cursor" style="height:13px;" />
+		</div>
+	)
+}

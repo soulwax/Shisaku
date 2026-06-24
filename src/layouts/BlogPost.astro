@@ -1,86 +1,61 @@
 ---
-import { Image } from 'astro:assets';
 import type { CollectionEntry } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
 
 type Props = CollectionEntry<'blog'>['data'];
 
 const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 ---
 
+<!doctype html>
 <html lang="en">
 	<head>
-		<BaseHead title={title} description={description} />
-		<style>
-			main {
-				width: calc(100% - 2em);
-				max-width: 100%;
-				margin: 0;
-			}
-			.hero-image {
-				width: 100%;
-			}
-			.hero-image img {
-				display: block;
-				margin: 0 auto;
-				border: 1px solid var(--border);
-				border-radius: 8px;
-				box-shadow: var(--box-shadow);
-			}
-			.prose {
-				width: 720px;
-				max-width: calc(100% - 2em);
-				margin: auto;
-				padding: 1em;
-				color: var(--text);
-			}
-			.title {
-				margin-bottom: 1em;
-				padding: 1em 0;
-				text-align: center;
-				line-height: 1;
-			}
-			.title h1 {
-				margin: 0 0 0.5em 0;
-			}
-			.date {
-				margin-bottom: 0.5em;
-				color: var(--muted);
-			}
-			.last-updated-on {
-				font-style: italic;
-			}
-		</style>
+		<BaseHead title={`${title} · ${SITE_TITLE}`} description={description} image={heroImage} />
 	</head>
 
 	<body>
 		<Header />
-		<main>
-			<article>
-				<div class="hero-image">
-					{heroImage && <Image width={1020} height={510} src={heroImage} alt="" />}
+		<main class="wrap post">
+			<a class="back" href="/">&larr; all posts</a>
+
+			<header class="post-head">
+				<div class="post-meta">
+					<span><FormattedDate date={pubDate} /></span>
+					<span class="sep">&middot;</span>
+					<span class="badge">devlog</span>
+					{
+						updatedDate && (
+							<>
+								<span class="sep">&middot;</span>
+								<span>
+									updated <FormattedDate date={updatedDate} />
+								</span>
+							</>
+						)
+					}
 				</div>
-				<div class="prose">
-					<div class="title">
-						<div class="date">
-							<FormattedDate date={pubDate} />
-							{
-								updatedDate && (
-									<div class="last-updated-on">
-										Last updated on <FormattedDate date={updatedDate} />
-									</div>
-								)
-							}
-						</div>
-						<h1>{title}</h1>
-						<hr />
-					</div>
-					<slot />
+				<h1 class="post-title">{title}</h1>
+				<p class="post-dek">{description}</p>
+				<div class="post-tags">
+					<span class="tag">+devlog</span>
+					<span class="tag">+build-notes</span>
 				</div>
+			</header>
+
+			<article class="post-body">
+				<slot />
 			</article>
+
+			<div class="post-foot">
+				<div class="reader-notes">
+					<p>If you're reading this as a <em>developer</em>: this devlog is built in the open.</p>
+					<p>If you're reading this as a <em>modder</em>: the direction is source-visible, inspectable systems.</p>
+				</div>
+			</div>
 		</main>
 		<Footer />
 	</body>
