@@ -1,0 +1,50 @@
+---
+import BaseHead from '../components/BaseHead.astro';
+import Footer from '../components/Footer.astro';
+import Header from '../components/Header.astro';
+import { SITE_TITLE } from '../consts';
+
+interface Props {
+	title: string;
+	description?: string;
+}
+
+const { title, description = 'Manage shisaku devlog posts.' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title={`${title} · ${SITE_TITLE} admin`} description={description} />
+	</head>
+	<body>
+		<Header />
+		<main class="admin-wrap">
+			<header class="admin-head">
+				<div>
+					<div class="prompt">$ shisaku admin</div>
+					<h1>{title}</h1>
+				</div>
+				<nav class="admin-nav" aria-label="Admin">
+					<a href="/admin">posts</a>
+					<a href="/admin/posts/new">new post</a>
+					<form data-logout-form>
+						<button class="button button-quiet" type="submit">log out</button>
+					</form>
+				</nav>
+			</header>
+			<slot />
+		</main>
+		<Footer />
+		<script>
+			import { actions } from 'astro:actions';
+
+			const form = document.querySelector<HTMLFormElement>('[data-logout-form]');
+			form?.addEventListener('submit', async (event) => {
+				event.preventDefault();
+				await actions.auth.logout(new FormData());
+				window.location.href = '/admin/login';
+			});
+		</script>
+	</body>
+</html>

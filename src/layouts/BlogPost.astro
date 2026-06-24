@@ -1,14 +1,29 @@
 ---
-import type { CollectionEntry } from 'astro:content';
 import BaseHead from '../components/BaseHead.astro';
 import Footer from '../components/Footer.astro';
 import FormattedDate from '../components/FormattedDate.astro';
 import Header from '../components/Header.astro';
 import { SITE_TITLE } from '../consts';
 
-type Props = CollectionEntry<'blog'>['data'];
+interface Props {
+	title: string;
+	description: string;
+	pubDate: Date;
+	updatedDate?: Date | null;
+	heroImage?: string | null;
+	tags?: string[];
+	readTimeMinutes?: number;
+}
 
-const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
+const {
+	title,
+	description,
+	pubDate,
+	updatedDate,
+	heroImage,
+	tags = ['devlog', 'build-notes'],
+	readTimeMinutes,
+} = Astro.props;
 ---
 
 <!doctype html>
@@ -28,6 +43,14 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 					<span class="sep">&middot;</span>
 					<span class="badge">devlog</span>
 					{
+						readTimeMinutes && (
+							<>
+								<span class="sep">&middot;</span>
+								<span>~{readTimeMinutes} min read</span>
+							</>
+						)
+					}
+					{
 						updatedDate && (
 							<>
 								<span class="sep">&middot;</span>
@@ -41,8 +64,7 @@ const { title, description, pubDate, updatedDate, heroImage } = Astro.props;
 				<h1 class="post-title">{title}</h1>
 				<p class="post-dek">{description}</p>
 				<div class="post-tags">
-					<span class="tag">+devlog</span>
-					<span class="tag">+build-notes</span>
+					{tags.map((tag) => <span class="tag">+{tag}</span>)}
 				</div>
 			</header>
 

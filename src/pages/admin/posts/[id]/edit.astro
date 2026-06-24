@@ -1,0 +1,19 @@
+---
+import PostEditor from '../../../../components/PostEditor.astro';
+import AdminLayout from '../../../../layouts/AdminLayout.astro';
+import { getPostById } from '../../../../lib/posts';
+
+const id = Astro.params.id;
+const post = id ? await getPostById(id) : null;
+
+if (!post) {
+	return Astro.redirect('/admin');
+}
+
+const saved = Astro.url.searchParams.get('saved') === '1';
+---
+
+<AdminLayout title="Edit post">
+	{saved && <p class="form-success" role="status">Post saved.</p>}
+	<PostEditor post={post} />
+</AdminLayout>

@@ -1,8 +1,8 @@
 ---
-import type { CollectionEntry } from 'astro:content';
+import type { Post } from '../db/schema';
 
 interface Props {
-	posts: CollectionEntry<'blog'>[];
+	posts: Post[];
 }
 
 const { posts } = Astro.props;
@@ -12,30 +12,27 @@ const formatFeedDate = (date: Date) =>
 		.toISOString()
 		.slice(0, 10)
 		.replaceAll('-', '.');
-
-const estimateReadMinutes = (body = '') => Math.max(1, Math.ceil(body.split(/\s+/).length / 220));
 ---
 
 <div class="feed">
 	{
 		posts.map((post, index) => (
-			<a class:list={['entry', { featured: index === 0 }]} href={`/blog/${post.id}/`}>
+			<a class:list={['entry', { featured: index === 0 }]} href={`/blog/${post.slug}/`}>
 				<div class="entry-meta">
-					<span>{formatFeedDate(post.data.pubDate)}</span>
+					<span>{formatFeedDate(post.pubDate)}</span>
 					<span class="sep">&middot;</span>
 					<span class="badge">{index === 0 ? 'latest' : 'note'}</span>
 					<span class="sep">&middot;</span>
-					<span>~{estimateReadMinutes(post.body)} min read</span>
+					<span>~{post.readTimeMinutes} min read</span>
 				</div>
 				<div class="entry-title">
-					<span class="caret">&gt;</span> {post.data.title}
+					<span class="caret">&gt;</span> {post.title}
 				</div>
-				<p class="entry-dek">{post.data.description}</p>
+				<p class="entry-dek">{post.description}</p>
 				<div class="entry-foot">
 					<div class="entry-tags">
-						<span class="tag">+devlog</span>
-						<span class="tag">+build-notes</span>
-						{post.data.updatedDate && <span class="tag">+updated</span>}
+						{post.tags.map((tag) => <span class="tag">+{tag}</span>)}
+						{post.updatedDate && <span class="tag">+updated</span>}
 					</div>
 					<span class="entry-read">
 						read <span class="arr">-&gt;</span>

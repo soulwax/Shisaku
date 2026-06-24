@@ -9,7 +9,7 @@
 Two outcomes, delivered as two phases:
 
 1. **Restyle** — port Shisaku's terminal/mono visual language into the Astro site, with Shisaku as the source of truth.
-2. **CMS** — turn the static, content-collection blog into an SSR app where multiple admins author posts through a WYSIWYG editor, with posts and credentials stored in Neon Postgres via Drizzle.
+2. **CMS** — turn the static, content-collection blog into an SSR app where the authorized shisaku administrator authors posts through a WYSIWYG editor, with posts and credentials stored in Neon Postgres via Drizzle.
 
 Phase 1 ships independently of Phase 2.
 
@@ -20,12 +20,12 @@ Phase 1 ships independently of Phase 2.
 | Post storage | Database rows (full CMS), not markdown files. SSR rendering. |
 | Database | Neon Postgres via Drizzle ORM. Conn strings in `./Shisaku/.env` (`DATABASE_URL` pooled for runtime, `DATABASE_URL_UNPOOLED` for migrations). |
 | Sessions | Redis (`REDIS_URL` from the same `.env`), TTL-native. |
-| Host / adapter | `@astrojs/node` standalone (host-agnostic; Neon's serverless driver works over HTTP). |
+| Host / adapter | `@astrojs/node` standalone. The configured custom Neon hostname does not expose Neon's derived HTTP endpoint, so Drizzle uses pooled direct PostgreSQL transport at runtime. |
 | Auth | GitHub OAuth only (`github.com`). Only the GitHub username `soulwax` is authorized as admin. The returned GitHub account email must use a GitHub email suffix (for example GitHub's noreply suffix) before an admin session is created. Hand-rolled sessions remain random-token/httpOnly-cookie based. No public signup. |
 | Editor | Milkdown Crepe (markdown-native WYSIWYG), client-side island, outputs markdown. |
 | Mutations | Astro Actions + middleware guarding `/admin/**`. |
 | Markdown render | `markdown-it` + `@shikijs/markdown-it`, then `sanitize-html`. |
-| Existing posts | Migrate `src/content/blog/*` into the DB as seed posts (plain markdown; MDX component features dropped). |
+| Existing posts | Migrate the original content files into the DB as seed posts (plain markdown; MDX component features dropped), then retain them under `scripts/seed-content/` for repeatable seeding. |
 | Index page | `/` becomes the feed (per the Shisaku index mockup), not a separate hero landing. |
 | Images | Hero + inline images are URLs only. Upload/object-storage deferred. |
 
@@ -55,7 +55,7 @@ No data changes; posts still load from content collections until Phase 2.
 ### Config / dependencies
 
 - `astro.config.mjs`: `output: 'server'`, `adapter: node({ mode: 'standalone' })`.
-- Add: `@astrojs/node`, `drizzle-orm`, `drizzle-kit`, `@neondatabase/serverless`, `markdown-it`, `@shikijs/markdown-it`, `sanitize-html`, `@milkdown/crepe`, a Redis client (`ioredis`), `dotenv`.
+- Add: `@astrojs/node`, `drizzle-orm`, `drizzle-kit`, `postgres`, `markdown-it`, `@shikijs/markdown-it`, `sanitize-html`, `@milkdown/crepe`, a Redis client (`ioredis`), `dotenv`.
 - Remove: `@astrojs/mdx`, `src/content.config.ts`, `src/content/blog/`.
 - Env loading: load `../Shisaku/.env` explicitly (via `dotenv` with an explicit path) in `astro.config.mjs`, `drizzle.config.ts`, and the server entry, since the file lives outside the Astro project root.
 
@@ -97,7 +97,7 @@ Mutations (create/update/publish post, logout) are Astro Actions.
 
 ### Seed / migration
 
-A one-time script reads `src/content/blog/*.{md,mdx}`, parses frontmatter, and inserts rows into `posts` (treated as plain markdown), so the CMS launches with existing content. Run after the schema migration.
+An idempotent script reads `scripts/seed-content/*.{md,mdx}`, parses frontmatter, and upserts rows into `posts` (treated as plain markdown), so new environments launch with existing content. Run after the schema migration.
 
 ### Migrations
 

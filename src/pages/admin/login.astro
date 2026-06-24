@@ -1,0 +1,29 @@
+---
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
+
+if (Astro.locals.user) {
+	return Astro.redirect('/admin');
+}
+
+const error = Astro.url.searchParams.get('error');
+---
+
+<!doctype html>
+<html lang="en">
+	<head>
+		<BaseHead title="Admin login · shisaku" description="Sign in to manage the shisaku devlog." />
+	</head>
+	<body>
+		<Header />
+		<main class="wrap auth-page">
+			<div class="prompt">$ auth github</div>
+			<h1>Admin sign in</h1>
+			<p>GitHub access is restricted to the shisaku administrator account.</p>
+			{error && <p class="form-error" role="alert">{error}</p>}
+			<a class="button" href="/admin/oauth/github/start">Continue with GitHub</a>
+		</main>
+		<Footer />
+	</body>
+</html>

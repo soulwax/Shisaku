@@ -1,0 +1,40 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import { listAllPosts } from '../../lib/posts';
+
+const posts = await listAllPosts();
+---
+
+<AdminLayout title="Posts">
+	<div class="admin-toolbar">
+		<p>{posts.length} {posts.length === 1 ? 'entry' : 'entries'}</p>
+		<a class="button" href="/admin/posts/new">New post</a>
+	</div>
+
+	<div class="admin-post-list">
+		{
+			posts.map((post) => (
+				<article class="admin-post-row">
+					<div>
+						<div class="entry-meta">
+							<span class:list={['status-dot', post.status]} aria-hidden="true" />
+							<span>{post.status}</span>
+							<span class="sep">&middot;</span>
+							<time datetime={post.pubDate.toISOString()}>
+								{post.pubDate.toISOString().slice(0, 10)}
+							</time>
+						</div>
+						<h2>{post.title}</h2>
+						<p>/{post.slug}</p>
+					</div>
+					<div class="row-actions">
+						{post.status === 'published' && <a href={`/blog/${post.slug}`}>view</a>}
+						<a class="button button-quiet" href={`/admin/posts/${post.id}/edit`}>edit</a>
+					</div>
+				</article>
+			))
+		}
+	</div>
+
+	{posts.length === 0 && <p class="feed-empty">No posts yet.</p>}
+</AdminLayout>

@@ -1,0 +1,122 @@
+---
+import '@milkdown/crepe/theme/common/style.css';
+import type { Post } from '../db/schema';
+
+interface Props {
+	post?: Post | null;
+}
+
+const { post = null } = Astro.props;
+const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
+---
+
+<form class="post-editor" data-post-editor>
+	<input type="hidden" name="id" value={post?.id ?? ''} />
+
+	<div class="editor-meta-grid">
+		<label>
+			<span>Title</span>
+			<input name="title" required maxlength="180" value={post?.title ?? ''} />
+		</label>
+		<label>
+			<span>Slug</span>
+			<input name="slug" required maxlength="180" value={post?.slug ?? ''} />
+		</label>
+		<label class="editor-wide">
+			<span>Description</span>
+			<textarea name="description" required maxlength="500" rows="3">{post?.description ?? ''}</textarea>
+		</label>
+		<label>
+			<span>Tags</span>
+			<input name="tags" value={(post?.tags ?? ['devlog', 'build-notes']).join(', ')} />
+		</label>
+		<label>
+			<span>Hero image URL</span>
+			<input name="heroImage" type="url" value={post?.heroImage ?? ''} />
+		</label>
+		<label>
+			<span>Publication date</span>
+			<input name="pubDate" type="datetime-local" required value={pubDate} />
+		</label>
+		<label>
+			<span>Status</span>
+			<select name="status">
+				<option value="draft" selected={(post?.status ?? 'draft') === 'draft'}>Draft</option>
+				<option value="published" selected={post?.status === 'published'}>Published</option>
+			</select>
+		</label>
+	</div>
+
+	<div class="editor-body">
+		<div class="editor-body-head">
+			<label for="body-markdown">Body</label>
+			<span>Markdown</span>
+		</div>
+		<textarea id="body-markdown" name="bodyMarkdown" hidden>{post?.bodyMarkdown ?? ''}</textarea>
+		<div id="crepe-editor"></div>
+	</div>
+
+	<p class="form-error" data-form-error role="alert" hidden></p>
+
+	<div class="editor-actions">
+		<a class="button button-quiet" href="/admin">Cancel</a>
+		<button class="button" type="submit">Save post</button>
+		{post && <button class="button button-danger" type="button" data-delete-post>Delete</button>}
+	</div>
+</form>
+
+<script>
+	import { Crepe } from '@milkdown/crepe';
+	import { actions } from 'astro:actions';
+
+	const form = document.querySelector<HTMLFormElement>('[data-post-editor]');
+	const markdownField = document.querySelector<HTMLTextAreaElement>('#body-markdown');
+	const errorField = document.querySelector<HTMLElement>('[data-form-error]');
+	const editorRoot = document.querySelector<HTMLElement>('#crepe-editor');
+
+	if (form && markdownField && editorRoot) {
+		const crepe = new Crepe({
+			root: editorRoot,
+			defaultValue: markdownField.value,
+		});
+
+		await crepe.create();
+
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			markdownField.value = crepe.getMarkdown();
+			errorField?.setAttribute('hidden', '');
+
+			const result = await actions.posts.save(new FormData(form));
+
+			if (result.error) {
+				if (errorField) {
+					errorField.textContent = result.error.message;
+					errorField.removeAttribute('hidden');
+				}
+				return;
+			}
+
+			window.location.href = `/admin/posts/${result.data.id}/edit?saved=1`;
+		});
+
+		form.querySelector<HTMLButtonElement>('[data-delete-post]')?.addEventListener('click', async () => {
+			if (!window.confirm('Delete this post? This cannot be undone.')) return;
+
+			const id = new FormData(form).get('id');
+			const data = new FormData();
+			data.set('id', String(id));
+			const result = await actions.posts.remove(data);
+
+			if (result.error) {
+				if (errorField) {
+					errorField.textContent = result.error.message;
+					errorField.removeAttribute('hidden');
+				}
+				return;
+			}
+
+			window.location.href = '/admin';
+		});
+	}
+</script>

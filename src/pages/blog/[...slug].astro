@@ -1,20 +1,39 @@
 ---
-import { type CollectionEntry, getCollection, render } from 'astro:content';
+import BaseHead from '../../components/BaseHead.astro';
+import Footer from '../../components/Footer.astro';
+import Header from '../../components/Header.astro';
 import BlogPost from '../../layouts/BlogPost.astro';
+import { getPublishedPostBySlug } from '../../lib/posts';
+import { renderMarkdown } from '../../lib/markdown';
 
-export async function getStaticPaths() {
-	const posts = await getCollection('blog');
-	return posts.map((post) => ({
-		params: { slug: post.id },
-		props: post,
-	}));
+const slug = Astro.params.slug;
+const post = slug ? await getPublishedPostBySlug(slug) : null;
+const bodyHtml = post ? await renderMarkdown(post.bodyMarkdown) : '';
+
+if (!post) {
+	Astro.response.status = 404;
 }
-type Props = CollectionEntry<'blog'>;
-
-const post = Astro.props;
-const { Content } = await render(post);
 ---
 
-<BlogPost {...post.data}>
-	<Content />
-</BlogPost>
+{
+	post ? (
+		<BlogPost {...post}>
+			<Fragment set:html={bodyHtml} />
+		</BlogPost>
+	) : (
+		<html lang="en">
+			<head>
+				<BaseHead title="Post not found · shisaku" description="The requested post was not found." />
+			</head>
+			<body>
+				<Header />
+				<main class="wrap auth-page">
+					<div class="prompt">$ cat devlog/{slug}</div>
+					<h1>Post not found</h1>
+					<a class="button" href="/">Back to the feed</a>
+				</main>
+				<Footer />
+			</body>
+		</html>
+	)
+}
