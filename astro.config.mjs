@@ -9,7 +9,7 @@ loadLocalEnv();
 
 // https://astro.build/config
 export default defineConfig({
-	site: 'https://blog.shisaku.dev',
+	site: 'https://shisaku.dev',
 	output: 'server',
 	adapter: vercel({
 		maxDuration: 30,

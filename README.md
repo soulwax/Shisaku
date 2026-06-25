@@ -47,7 +47,7 @@ the `soulwax` account and a verified `users.noreply.github.com` email address.
 The GitHub OAuth app callback URL is:
 
 ```text
-https://blog.shisaku.dev/admin/oauth/github/callback
+https://shisaku.dev/admin/oauth/github/callback
 ```
 
 For a fresh environment, run `pnpm run db:migrate` followed by `pnpm run seed:posts`.

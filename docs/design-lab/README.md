@@ -1,6 +1,6 @@
 # shisaku devlog
 
-The devlog for **Shisaku**, served at `blog.shisaku.dev` — a terminal-flavoured, dark-first reading experience written in plain HTML/CSS. Notes from building games and tools in the open, starting with **EchoWarrior**.
+The devlog for **Shisaku**, served at `shisaku.dev` — a terminal-flavoured, dark-first reading experience written in plain HTML/CSS. Notes from building games and tools in the open, starting with **EchoWarrior**.
 
 ![shisaku devlog — index, dark mode](screenshots/readme-hero.png)
 
