@@ -8,10 +8,13 @@ interface Props {
 
 const { post = null } = Astro.props;
 const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
+const currentStatus = post?.status ?? 'draft';
+const isPublished = currentStatus === 'published';
 ---
 
 <form class="post-editor" data-post-editor>
 	<input type="hidden" name="id" value={post?.id ?? ''} />
+	<input type="hidden" name="status" value={currentStatus} />
 
 	<div class="editor-meta-grid">
 		<label>
@@ -38,13 +41,10 @@ const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
 			<span>Publication date</span>
 			<input name="pubDate" type="datetime-local" required value={pubDate} />
 		</label>
-		<label>
+		<div class="editor-status-panel">
 			<span>Status</span>
-			<select name="status">
-				<option value="draft" selected={(post?.status ?? 'draft') === 'draft'}>Draft</option>
-				<option value="published" selected={post?.status === 'published'}>Published</option>
-			</select>
-		</label>
+			<strong class:list={['editor-status-badge', currentStatus]}>{currentStatus}</strong>
+		</div>
 	</div>
 
 	<div class="editor-body">
@@ -60,7 +60,27 @@ const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
 
 	<div class="editor-actions">
 		<a class="button button-quiet" href="/admin">Cancel</a>
-		<button class="button" type="submit">Save post</button>
+		{
+			isPublished ? (
+				<>
+					<button class="button button-quiet" type="submit" data-save-status="draft">
+						Move to draft
+					</button>
+					<button class="button" type="submit" data-save-status="published">
+						Update published
+					</button>
+				</>
+			) : (
+				<>
+					<button class="button button-quiet" type="submit" data-save-status="draft">
+						Save draft
+					</button>
+					<button class="button" type="submit" data-save-status="published">
+						Publish
+					</button>
+				</>
+			)
+		}
 		{post && <button class="button button-danger" type="button" data-delete-post>Delete</button>}
 	</div>
 </form>
@@ -73,6 +93,7 @@ const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
 	const markdownField = document.querySelector<HTMLTextAreaElement>('#body-markdown');
 	const errorField = document.querySelector<HTMLElement>('[data-form-error]');
 	const editorRoot = document.querySelector<HTMLElement>('#crepe-editor');
+	const statusField = form?.querySelector<HTMLInputElement>('input[name="status"]');
 
 	if (form && markdownField && editorRoot) {
 		const crepe = new Crepe({
@@ -84,6 +105,12 @@ const pubDate = (post?.pubDate ?? new Date()).toISOString().slice(0, 16);
 
 		form.addEventListener('submit', async (event) => {
 			event.preventDefault();
+			const submitter = (event as SubmitEvent).submitter as HTMLElement | null;
+			const nextStatus = submitter?.dataset.saveStatus;
+			if ((nextStatus === 'draft' || nextStatus === 'published') && statusField) {
+				statusField.value = nextStatus;
+			}
+
 			markdownField.value = crepe.getMarkdown();
 			errorField?.setAttribute('hidden', '');
 

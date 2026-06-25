@@ -165,6 +165,7 @@ nav.site-nav a:hover {
 	color: var(--secondary);
 	width: 34px;
 	height: 34px;
+	padding: 0;
 	border-radius: 9px;
 	cursor: pointer;
 	display: grid;
@@ -175,6 +176,15 @@ nav.site-nav a:hover {
 .header-icon-button:hover {
 	border-color: var(--primary);
 	color: var(--link);
+}
+.admin-dashboard-link {
+	border-color: var(--primary);
+	color: var(--accent-soft);
+	background: color-mix(in srgb, var(--primary) 18%, var(--surface));
+}
+.admin-dashboard-link:hover {
+	color: var(--text);
+	background: var(--primary);
 }
 .toggle .ico,
 .header-icon-button .ico {
@@ -986,16 +996,40 @@ html[data-theme="light"] .button-danger {
 	gap: 18px 22px;
 }
 .editor-meta-grid label,
+.editor-status-panel,
 .editor-body {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
 }
 .editor-meta-grid label > span,
+.editor-status-panel > span,
 .editor-body-head {
 	font-family: var(--mono);
 	font-size: 12px;
 	color: var(--muted);
+}
+.editor-status-panel {
+	justify-content: flex-end;
+}
+.editor-status-badge {
+	min-height: 46px;
+	display: inline-flex;
+	align-items: center;
+	border: 1px solid var(--border-strong);
+	border-radius: 7px;
+	background: var(--surface);
+	color: var(--muted);
+	font-family: var(--mono);
+	font-size: 13px;
+	font-weight: 600;
+	padding: 10px 12px;
+	text-transform: capitalize;
+}
+.editor-status-badge.published {
+	border-color: color-mix(in srgb, var(--accent-soft) 60%, var(--border-strong));
+	color: var(--accent-soft);
+	background: color-mix(in srgb, var(--accent-soft) 10%, var(--surface));
 }
 .editor-wide {
 	grid-column: 1 / -1;

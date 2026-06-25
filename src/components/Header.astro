@@ -20,6 +20,33 @@ const signInUrl = `/admin/oauth/github/start?returnTo=${encodeURIComponent(Astro
 				<a href="/about">about</a>
 				<a href="/rss.xml">rss</a>
 			</span>
+			{
+				isAdmin && (
+					<a
+						class="header-icon-button admin-dashboard-link"
+						href="/admin"
+						aria-label="Open admin dashboard"
+						title="Admin dashboard"
+					>
+						<svg
+							class="ico"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M4 5h16" />
+							<path d="M4 12h10" />
+							<path d="M4 19h16" />
+							<path d="M18 9v6" />
+							<path d="M15 12h6" />
+						</svg>
+					</a>
+				)
+			}
 			<button
 				class="header-icon-button"
 				id="authDialogBtn"
