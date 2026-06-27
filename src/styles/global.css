@@ -1046,6 +1046,11 @@ html[data-theme="light"] .button-danger {
 	padding: 10px 12px;
 	outline: none;
 }
+.post-editor input[readonly] {
+	background: color-mix(in srgb, var(--muted) 7%, var(--surface));
+	color: var(--secondary);
+	font-family: var(--mono);
+}
 .post-editor input:focus,
 .post-editor textarea:focus,
 .post-editor select:focus {

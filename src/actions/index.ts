@@ -14,7 +14,7 @@ import {
 const postInput = z.object({
 	id: z.string().optional(),
 	title: z.string().min(1).max(180),
-	slug: z.string().max(180).optional(),
+	slug: z.string().optional(),
 	description: z.string().min(1).max(500),
 	bodyMarkdown: z.string().min(1),
 	heroImage: z.string().optional(),

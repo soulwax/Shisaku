@@ -19,16 +19,19 @@ const isPublished = currentStatus === 'published';
 	<div class="editor-meta-grid">
 		<label>
 			<span>Title</span>
-			<input name="title" required maxlength="180" value={post?.title ?? ''} />
+			<input name="title" required maxlength="180" value={post?.title ?? ''} data-title-field />
 		</label>
-		{
-			post && (
-				<label>
-					<span>Slug</span>
-					<input name="slug" required maxlength="180" value={post.slug} />
-				</label>
-			)
-		}
+		<label>
+			<span>Slug</span>
+			<input
+				name="slug"
+				required
+				readonly
+				maxlength="180"
+				value={post?.slug ?? ''}
+				data-slug-field
+			/>
+		</label>
 		<label class="editor-wide">
 			<span>Description</span>
 			<textarea name="description" required maxlength="500" rows="3">{post?.description ?? ''}</textarea>
@@ -92,14 +95,27 @@ const isPublished = currentStatus === 'published';
 <script>
 	import { Crepe } from '@milkdown/crepe';
 	import { actions } from 'astro:actions';
+	import { normalizeSlug } from '../lib/slugs';
 
 	const form = document.querySelector<HTMLFormElement>('[data-post-editor]');
 	const markdownField = document.querySelector<HTMLTextAreaElement>('#body-markdown');
 	const errorField = document.querySelector<HTMLElement>('[data-form-error]');
 	const editorRoot = document.querySelector<HTMLElement>('#crepe-editor');
 	const statusField = form?.querySelector<HTMLInputElement>('input[name="status"]');
+	const titleField = form?.querySelector<HTMLInputElement>('[data-title-field]');
+	const slugField = form?.querySelector<HTMLInputElement>('[data-slug-field]');
 
 	if (form && markdownField && editorRoot) {
+		const syncSlugFromTitle = () => {
+			if (!titleField || !slugField) return;
+
+			const title = titleField.value.trim();
+			slugField.value = title ? (normalizeSlug(title) || 'post').slice(0, 180).replace(/-+$/g, '') : '';
+		};
+
+		titleField?.addEventListener('input', syncSlugFromTitle);
+		syncSlugFromTitle();
+
 		const crepe = new Crepe({
 			root: editorRoot,
 			defaultValue: markdownField.value,
