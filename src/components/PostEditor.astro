@@ -21,10 +21,14 @@ const isPublished = currentStatus === 'published';
 			<span>Title</span>
 			<input name="title" required maxlength="180" value={post?.title ?? ''} />
 		</label>
-		<label>
-			<span>Slug</span>
-			<input name="slug" required maxlength="180" value={post?.slug ?? ''} />
-		</label>
+		{
+			post && (
+				<label>
+					<span>Slug</span>
+					<input name="slug" required maxlength="180" value={post.slug} />
+				</label>
+			)
+		}
 		<label class="editor-wide">
 			<span>Description</span>
 			<textarea name="description" required maxlength="500" rows="3">{post?.description ?? ''}</textarea>

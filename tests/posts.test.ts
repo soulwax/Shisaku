@@ -16,13 +16,14 @@ test(
 			getPublishedPostBySlug,
 			updatePost,
 		} = await import('../src/lib/posts');
-		const slug = `test-${Date.now()}`;
+		const suffix = Date.now();
+		const slug = `integration-test-${suffix}`;
 		let createdId: string | undefined;
+		let duplicateId: string | undefined;
 
 		try {
 			const created = await createPost({
-				slug,
-				title: 'Integration test',
+				title: `Integration test ${suffix}`,
 				description: 'Temporary post created by the test suite.',
 				bodyMarkdown: '# Draft',
 				status: 'draft',
@@ -32,11 +33,22 @@ test(
 			createdId = created.id;
 
 			assert.equal(created.status, 'draft');
+			assert.equal(created.slug, slug);
 			assert.equal((await getPostById(created.id))?.slug, slug);
 			assert.equal(await getPublishedPostBySlug(slug), null);
 
+			const duplicate = await createPost({
+				title: `Integration test ${suffix}`,
+				description: 'Temporary post created by the test suite.',
+				bodyMarkdown: '# Draft',
+				status: 'draft',
+				pubDate: new Date(),
+				tags: ['test'],
+			});
+			duplicateId = duplicate.id;
+			assert.equal(duplicate.slug, `${slug}-2`);
+
 			const updated = await updatePost(created.id, {
-				slug,
 				title: 'Integration test',
 				description: 'Temporary post created by the test suite.',
 				bodyMarkdown: '# Published',
@@ -46,12 +58,18 @@ test(
 			});
 
 			assert.equal(updated.status, 'published');
+			assert.equal(updated.slug, slug);
 			assert.equal((await getPublishedPostBySlug(slug))?.id, created.id);
 
+			await deletePost(duplicate.id);
+			duplicateId = undefined;
 			await deletePost(created.id);
 			createdId = undefined;
 			assert.equal(await getPostById(created.id), null);
 		} finally {
+			if (duplicateId) {
+				await deletePost(duplicateId);
+			}
 			if (createdId) {
 				await deletePost(createdId);
 			}

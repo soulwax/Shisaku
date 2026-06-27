@@ -14,7 +14,7 @@ import {
 const postInput = z.object({
 	id: z.string().optional(),
 	title: z.string().min(1).max(180),
-	slug: z.string().min(1).max(180),
+	slug: z.string().max(180).optional(),
 	description: z.string().min(1).max(500),
 	bodyMarkdown: z.string().min(1),
 	heroImage: z.string().optional(),
@@ -57,9 +57,9 @@ export const server = {
 			input: postInput,
 			handler: async (input, context) => {
 				const user = requireAdmin(context.locals.user);
-				const slug = normalizeSlug(input.slug);
+				const slug = input.slug === undefined ? undefined : normalizeSlug(input.slug);
 
-				if (!slug) {
+				if (input.id && !slug) {
 					throw new ActionError({
 						code: 'BAD_REQUEST',
 						message: 'Enter a valid slug.',
