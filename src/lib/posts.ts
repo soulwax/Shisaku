@@ -1,7 +1,7 @@
 import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db/client';
 import { posts, type NewPost, type Post } from '../db/schema';
-import { estimateReadMinutes } from './markdown';
+import { estimateReadMinutes, normalizeMarkdownEscapes } from './markdown';
 export { normalizeSlug } from './slugs';
 import { normalizeSlug } from './slugs';
 
@@ -58,19 +58,23 @@ export const normalizeTags = (value: string | string[] | undefined): string[] =>
 	return [...new Set(values.map((tag) => tag.trim().replace(/^\+/, '')).filter(Boolean))];
 };
 
-const toNewPost = (input: PostInput, slug: string): NewPost => ({
-	slug,
-	title: input.title.trim(),
-	description: input.description.trim(),
-	bodyMarkdown: input.bodyMarkdown,
-	heroImage: input.heroImage?.trim() || null,
-	tags: normalizeTags(input.tags),
-	status: input.status,
-	pubDate: input.pubDate,
-	readTimeMinutes: estimateReadMinutes(input.bodyMarkdown),
-	authorId: input.authorId ?? null,
-	updatedAt: new Date(),
-});
+const toNewPost = (input: PostInput, slug: string): NewPost => {
+	const bodyMarkdown = normalizeMarkdownEscapes(input.bodyMarkdown);
+
+	return {
+		slug,
+		title: input.title.trim(),
+		description: input.description.trim(),
+		bodyMarkdown,
+		heroImage: input.heroImage?.trim() || null,
+		tags: normalizeTags(input.tags),
+		status: input.status,
+		pubDate: input.pubDate,
+		readTimeMinutes: estimateReadMinutes(bodyMarkdown),
+		authorId: input.authorId ?? null,
+		updatedAt: new Date(),
+	};
+};
 
 export const listPublishedPosts = async (): Promise<Post[]> =>
 	db
@@ -157,12 +161,12 @@ export const upsertSeedPost = async (input: PostInput): Promise<Post> => {
 			set: {
 				title: input.title.trim(),
 				description: input.description.trim(),
-				bodyMarkdown: input.bodyMarkdown,
+				bodyMarkdown: normalizeMarkdownEscapes(input.bodyMarkdown),
 				heroImage: input.heroImage?.trim() || null,
 				tags: normalizeTags(input.tags),
 				status: input.status,
 				pubDate: input.pubDate,
-				readTimeMinutes: estimateReadMinutes(input.bodyMarkdown),
+				readTimeMinutes: estimateReadMinutes(normalizeMarkdownEscapes(input.bodyMarkdown)),
 				updatedAt: new Date(),
 			},
 		})

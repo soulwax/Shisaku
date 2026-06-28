@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { estimateReadMinutes, renderMarkdown } from '../src/lib/markdown';
+import {
+	estimateReadMinutes,
+	normalizeMarkdownEscapes,
+	renderMarkdown,
+} from '../src/lib/markdown';
 
 test('markdown output is sanitized', async () => {
 	const html = await renderMarkdown(
@@ -29,4 +33,28 @@ test('highlights C and C++ fenced code blocks', async () => {
 
 test('read time is at least one minute', () => {
 	assert.equal(estimateReadMinutes('short post'), 1);
+});
+
+test('strips stray backslash escapes from Markdown punctuation', () => {
+	assert.equal(normalizeMarkdownEscapes('\\### Heading'), '### Heading');
+	assert.equal(normalizeMarkdownEscapes('a \\`0.19.7\\` tag'), 'a `0.19.7` tag');
+	assert.equal(normalizeMarkdownEscapes('list\\- item'), 'list- item');
+	assert.equal(normalizeMarkdownEscapes('it \\*\\*works\\*\\*'), 'it **works**');
+});
+
+test('leaves backslashes inside real fenced code untouched', () => {
+	const fenced = '```rust\nRegex::new(r"\\(").unwrap();\n```';
+	assert.equal(normalizeMarkdownEscapes(fenced), fenced);
+});
+
+test('cleans escaped punctuation in prose and inline spans', () => {
+	assert.equal(normalizeMarkdownEscapes('call `rem\\_euclid` here'), 'call `rem_euclid` here');
+});
+
+test('cleans code blocks whose fence was itself escaped', () => {
+	const corrupted = '\\`\\`\\`glsl\nprecision highp float;\n\\`\\`\\`';
+	assert.equal(
+		normalizeMarkdownEscapes(corrupted),
+		'```glsl\nprecision highp float;\n```',
+	);
 });

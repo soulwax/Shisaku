@@ -82,6 +82,47 @@ export const renderMarkdown = async (markdown: string): Promise<string> => {
 	});
 };
 
+// Matches a backslash escaping any CommonMark ASCII punctuation character
+// (the WYSIWYG editor over-escapes these when round-tripping pasted content,
+// e.g. `\#`, `\*\*`, `` \` ``), capturing the punctuation so we can drop the slash.
+const ESCAPED_PUNCTUATION = /\\([!-/:-@[-`{-~])/g;
+
+const unescapePunctuation = (text: string): string => text.replace(ESCAPED_PUNCTUATION, '$1');
+
+const FENCE = /^\s*(```+|~~~+)/;
+
+// Strip stray backslash escapes that the editor adds to Markdown punctuation so
+// posts render as authored. The contents of genuine fenced code blocks are left
+// untouched (they may contain real backslashes, e.g. a regex `\(` in a sample);
+// a block whose fence is itself escaped is not recognised as code, so its body
+// is cleaned along with the fence.
+export const normalizeMarkdownEscapes = (markdown: string): string => {
+	let inFence = false;
+	let fenceChar = '';
+
+	return markdown
+		.split('\n')
+		.map((line) => {
+			const fence = line.match(FENCE);
+
+			if (fence) {
+				const marker = fence[1][0];
+				if (!inFence) {
+					inFence = true;
+					fenceChar = marker;
+					return line;
+				}
+				if (marker === fenceChar) {
+					inFence = false;
+					return line;
+				}
+			}
+
+			return inFence ? line : unescapePunctuation(line);
+		})
+		.join('\n');
+};
+
 export const estimateReadMinutes = (markdown: string): number => {
 	const words = markdown.trim().split(/\s+/).filter(Boolean).length;
 	return Math.max(1, Math.ceil(words / 220));
