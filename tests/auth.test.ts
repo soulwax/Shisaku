@@ -14,35 +14,57 @@ test('any non-empty GitHub login can authenticate', () => {
 	assert.equal(isAllowedGitHubIdentity({ login: '' }), false);
 });
 
-test('soulwax is assigned admin and other users become commenters', () => {
-	assert.equal(roleForGitHubLogin('soulwax'), 'admin');
-	assert.equal(roleForGitHubLogin('SoulWax'), 'admin');
-	assert.equal(roleForGitHubLogin('someone-else'), 'commenter');
+const ADMIN = 'configured-admin';
+
+test('the configured admin handle is assigned admin and other users become commenters', () => {
+	assert.equal(roleForGitHubLogin('configured-admin', ADMIN), 'admin');
+	assert.equal(roleForGitHubLogin('Configured-Admin', ADMIN), 'admin');
+	assert.equal(roleForGitHubLogin('someone-else', ADMIN), 'commenter');
 });
 
-test('only soulwax admin users can access admin authoring', () => {
+test('nobody is admin when no admin handle is configured', () => {
+	assert.equal(roleForGitHubLogin('configured-admin', ''), 'commenter');
 	assert.equal(
-		isAuthorizedAdminUser({
-			username: 'soulwax',
-			email: 'soulwax@example.com',
-			role: 'admin',
-		}),
+		isAuthorizedAdminUser(
+			{ username: 'configured-admin', email: 'admin@example.com', role: 'admin' },
+			'',
+		),
+		false,
+	);
+});
+
+test('only the configured admin handle can access admin authoring', () => {
+	assert.equal(
+		isAuthorizedAdminUser(
+			{
+				username: 'configured-admin',
+				email: 'admin@example.com',
+				role: 'admin',
+			},
+			ADMIN,
+		),
 		true,
 	);
 	assert.equal(
-		isAuthorizedAdminUser({
-			username: 'someone-else',
-			email: 'someone@example.com',
-			role: 'admin',
-		}),
+		isAuthorizedAdminUser(
+			{
+				username: 'someone-else',
+				email: 'someone@example.com',
+				role: 'admin',
+			},
+			ADMIN,
+		),
 		false,
 	);
 	assert.equal(
-		isAuthorizedAdminUser({
-			username: 'soulwax',
-			email: 'soulwax@example.com',
-			role: 'commenter',
-		}),
+		isAuthorizedAdminUser(
+			{
+				username: 'configured-admin',
+				email: 'admin@example.com',
+				role: 'commenter',
+			},
+			ADMIN,
+		),
 		false,
 	);
 });

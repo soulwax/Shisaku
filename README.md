@@ -10,7 +10,7 @@ This is not a theme or a starter dropped onto a default. It's a hand-built publi
 
 - **Astro SSR** rendered on Vercel via `@astrojs/vercel`.
 - **Postgres-backed content** — posts (published and draft) live in Neon, managed through Drizzle ORM and migrations, not in flat files.
-- **Custom admin authoring** — a protected dashboard for writing and editing entries, restricted to my GitHub account (`github.com/soulwax`).
+- **Custom admin authoring** — a protected dashboard for writing and editing entries, locked to a single configurable GitHub account (`ADMIN_GITHUB_USERNAME`).
 - **GitHub OAuth** — readers sign in to comment; authoring is locked to the owner.
 - **Comments** on devlog entries, tied to authenticated GitHub identities.
 - **Own Markdown pipeline**, RSS feed, light/dark theming, and a terminal-flavored UI.
@@ -55,16 +55,42 @@ entries are retained in `scripts/seed-content/` as migration inputs.
 
 Local environment variables are loaded from `.env.local`, with `.env` as an optional fallback.
 Vercel deployments use encrypted project environment variables. GitHub OAuth lets readers comment.
-Admin authoring is restricted to the GitHub account `github.com/soulwax`.
-
-The GitHub OAuth app settings should use:
-
-```text
-Homepage URL: https://shisaku.dev
-Authorization callback URL: https://shisaku.dev/admin/oauth/github/callback
-```
 
 For a fresh environment, run `pnpm run db:migrate` followed by `pnpm run seed:posts`.
+
+## Make it your own
+
+Nothing about the owner is hardcoded — the engine is meant to be deployed by anyone for
+their own blog. Two pieces of configuration decide whose blog it is:
+
+### Admin account (`ADMIN_GITHUB_USERNAME`)
+
+Admin authoring (the protected `/admin` dashboard) is granted to exactly one GitHub login,
+read from the `ADMIN_GITHUB_USERNAME` environment variable. Set it to your own GitHub handle
+— the part after `github.com/`, e.g. `octocat`. It is case-insensitive.
+
+```ini
+ADMIN_GITHUB_USERNAME=your-github-login
+```
+
+If it is left empty, **no one** has admin access (the safe default for a public deployment).
+Everyone else who signs in with GitHub becomes a regular commenter.
+
+### Your domain (the callback domain is variable)
+
+The OAuth **callback path is fixed** at `/admin/oauth/github/callback`, but the **domain is
+entirely yours** — the TLD, the name, and any subdomain(s) can be whatever you deploy to. The
+app builds the callback from the incoming request origin, so it works on `localhost`, on Vercel
+preview URLs, and on your production domain without code changes.
+
+When you register your GitHub OAuth app, use your own domain:
+
+```text
+Homepage URL: https://your-domain.example
+Authorization callback URL: https://your-domain.example/admin/oauth/github/callback
+```
+
+(The live instance this repo powers uses `https://shisaku.dev` — swap in your own.)
 
 ## Vercel
 
@@ -76,10 +102,11 @@ DATABASE_URL_UNPOOLED
 REDIS_URL
 GITHUB_CLIENT_ID
 GITHUB_CLIENT_SECRET
+ADMIN_GITHUB_USERNAME
 ```
 
-Apply database migrations before promoting a deployment. The GitHub OAuth callback must remain
-the production URL shown above.
+Apply database migrations before promoting a deployment. The GitHub OAuth callback must point at
+your own production domain (see [Make it your own](#make-it-your-own)).
 
 From this linked project directory, set or update secrets with:
 
@@ -89,6 +116,7 @@ vercel env add DATABASE_URL_UNPOOLED production preview development
 vercel env add REDIS_URL production preview development
 vercel env add GITHUB_CLIENT_ID production preview development
 vercel env add GITHUB_CLIENT_SECRET production preview development
+vercel env add ADMIN_GITHUB_USERNAME production preview development
 ```
 
 Then pull local Vercel variables when needed:

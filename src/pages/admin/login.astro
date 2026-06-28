@@ -2,7 +2,7 @@
 import BaseHead from '../../components/BaseHead.astro';
 import Footer from '../../components/Footer.astro';
 import Header from '../../components/Header.astro';
-import { isAuthorizedAdminUser } from '../../lib/auth/github';
+import { getAdminGitHubUsername, isAuthorizedAdminUser } from '../../lib/auth/github';
 
 const user = Astro.locals.user;
 const isAdmin = user ? isAuthorizedAdminUser(user) : false;
@@ -11,6 +11,8 @@ if (isAdmin) {
 	return Astro.redirect('/admin');
 }
 
+const adminUsername = getAdminGitHubUsername();
+const adminLabel = adminUsername ? `@${adminUsername}` : 'the configured admin account';
 const error = Astro.url.searchParams.get('error');
 ---
 
@@ -26,9 +28,9 @@ const error = Astro.url.searchParams.get('error');
 			<h1>Admin sign in</h1>
 			{
 				user ? (
-					<p>You are signed in as @{user.username}. Admin access is restricted to soulwax.</p>
+					<p>You are signed in as @{user.username}. Admin access is restricted to {adminLabel}.</p>
 				) : (
-					<p>GitHub admin access is restricted to soulwax.</p>
+					<p>GitHub admin access is restricted to {adminLabel}.</p>
 				)
 			}
 			{error && <p class="form-error" role="alert">{error}</p>}
