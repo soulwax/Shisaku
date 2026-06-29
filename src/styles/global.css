@@ -27,6 +27,9 @@
 	--accent-dim: #515f95;
 	--prose: #e6e4df;
 	--code-bg: #181a1e;
+	--code-copy-bg: #30406d;
+	--code-copy-bg-hover: #5b73c9;
+	--code-copy-fg: #fdfbf7;
 	--shadow: 0 1px 0 rgba(255, 255, 255, 0.02), 0 8px 30px rgba(0, 0, 0, 0.4);
 
 	--mono: "Spline Sans Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -57,6 +60,9 @@ html[data-theme="light"] {
 	--accent-dim: #8a93b2;
 	--prose: #2a2c30;
 	--code-bg: #e7e4dd;
+	--code-copy-bg: #30406d;
+	--code-copy-bg-hover: #5b73c9;
+	--code-copy-fg: #fdfbf7;
 	--shadow: 0 1px 2px rgba(20, 22, 30, 0.05), 0 12px 30px rgba(40, 45, 60, 0.08);
 }
 
@@ -1096,6 +1102,19 @@ html[data-theme="light"] .button-danger {
 .milkdown .ProseMirror {
 	min-height: 430px;
 	padding: 24px 28px 60px;
+}
+#crepe-editor .milkdown .milkdown-code-block .tools .tools-button-group button {
+	background: var(--code-copy-bg);
+	color: var(--code-copy-fg);
+	border: 1px solid color-mix(in srgb, var(--accent-soft) 35%, var(--code-copy-bg));
+}
+#crepe-editor .milkdown .milkdown-code-block .tools .tools-button-group button:hover,
+#crepe-editor .milkdown .milkdown-code-block .tools .tools-button-group button:focus-visible {
+	background: var(--code-copy-bg-hover);
+	color: var(--code-copy-fg);
+}
+#crepe-editor .milkdown .milkdown-code-block .tools .tools-button-group button svg {
+	fill: currentColor;
 }
 .editor-actions {
 	justify-content: flex-start;
