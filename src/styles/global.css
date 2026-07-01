@@ -149,6 +149,14 @@ nav.site-nav .links {
 	display: flex;
 	gap: 4px;
 }
+.header-actions {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-left: 6px;
+	padding-left: 12px;
+	border-left: 1px solid var(--border);
+}
 nav.site-nav a {
 	font-family: var(--mono);
 	font-size: 12.5px;
@@ -165,7 +173,6 @@ nav.site-nav a:hover {
 .toggle,
 .header-icon-button {
 	appearance: none;
-	margin-left: 4px;
 	border: 1px solid var(--border-strong);
 	background: var(--surface);
 	color: var(--secondary);
