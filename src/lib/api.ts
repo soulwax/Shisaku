@@ -1,10 +1,14 @@
 import { z } from 'zod';
 import type { Post } from '../db/schema';
 
-export const jsonResponse = (data: unknown, status = 200): Response =>
+export const jsonResponse = (
+	data: unknown,
+	status = 200,
+	extraHeaders: Record<string, string> = {},
+): Response =>
 	new Response(JSON.stringify(data), {
 		status,
-		headers: { 'Content-Type': 'application/json; charset=utf-8' },
+		headers: { 'Content-Type': 'application/json; charset=utf-8', ...extraHeaders },
 	});
 
 export const errorResponse = (

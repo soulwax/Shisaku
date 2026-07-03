@@ -38,23 +38,54 @@ A JSON HTTP API for automated blogging — publish from scripts, CI pipelines, c
 
 ### Authentication
 
-Two ways in; either is sufficient:
+Three ways in; any one is sufficient:
 
-1. **Bearer token** (the automation path): send `Authorization: Bearer <BLOG_API_TOKEN>`. The token is the value of the `BLOG_API_TOKEN` environment variable. If that variable is unset, token authentication is **disabled entirely** — the safe default, mirroring `ADMIN_GITHUB_USERNAME`.
-2. **Admin session cookie** (the browser path): the signed-in admin's session works too, so the same endpoints can back interactive tooling.
+1. **Fetched short-lived tokens** (recommended for automation): exchange client credentials for a bearer token at `POST /api/auth/token`. Tokens are random, opaque, stored in Redis, and **expire after one hour**; they can also be revoked at any time. The long-lived secret only ever travels to the token endpoint — anything that leaks into CI logs or agent transcripts is a token that dies within the hour.
+2. **Static bearer token**: send `Authorization: Bearer <BLOG_API_TOKEN>` directly. Simplest possible setup for personal scripting; the trade-off is that the long-lived secret rides along on every request.
+3. **Admin session cookie** (the browser path): the signed-in admin's session works too, so the same endpoints can back interactive tooling.
 
-Generate a strong token and set it alongside the other environment variables:
+Each mechanism is **disabled until you configure it** — mirroring `ADMIN_GITHUB_USERNAME`, an unset variable means that path simply does not exist:
+
+| Variable(s) | Enables |
+| :-- | :-- |
+| `BLOG_API_CLIENT_ID` + `BLOG_API_CLIENT_SECRET` | the token endpoint (`POST /api/auth/token`) |
+| `BLOG_API_TOKEN` | static bearer auth |
+
+Generate strong values and set them alongside the other environment variables:
 
 ```sh
-# generate
+# generate secrets
 openssl rand -base64 32          # or: node -e "console.log(crypto.randomBytes(32).toString('base64url'))"
 
 # local: add to .env.local
-BLOG_API_TOKEN=<generated-value>
+BLOG_API_CLIENT_ID=blog-bot
+BLOG_API_CLIENT_SECRET=<generated-value>
+BLOG_API_TOKEN=<generated-value>          # optional; only if you want static auth too
 
 # production
-vercel env add BLOG_API_TOKEN production preview development
+vercel env add BLOG_API_CLIENT_ID production preview development
+vercel env add BLOG_API_CLIENT_SECRET production preview development
 ```
+
+#### Fetching and using a token
+
+```sh
+# 1. Exchange credentials for a token (expires in 3600 s)
+TOKEN=$(curl -s -X POST "$BASE/api/auth/token" -H "Content-Type: application/json" \
+  -d "{\"clientId\":\"$BLOG_API_CLIENT_ID\",\"clientSecret\":\"$BLOG_API_CLIENT_SECRET\"}" \
+  | jq -r .accessToken)
+# → { "accessToken": "…", "tokenType": "Bearer", "expiresIn": 3600 }
+
+# 2. Use it exactly like the static token
+curl -H "Authorization: Bearer $TOKEN" "$BASE/api/posts?status=draft"
+
+# 3. Optionally revoke it when done (good hygiene for CI jobs)
+curl -s -X DELETE "$BASE/api/auth/token" \
+  -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"
+# → { "revoked": true }
+```
+
+Failed exchanges return `401 {"error": "Invalid client credentials."}`; when the endpoint is not configured it returns `404`. Expired or revoked tokens simply stop authorizing (requests fall back to `401`/`404` like any unauthenticated call), so long-running jobs should fetch a fresh token on startup rather than caching one across runs.
 
 Reads of **published** posts are public (no auth). Everything else — creating, updating, deleting, and any access to drafts — requires auth. Unauthenticated requests for a draft return `404` (not `401`), so draft existence is never leaked.
 
@@ -82,6 +113,8 @@ Reads of **published** posts are public (no auth). Everything else — creating,
 
 | Method | Path | Auth | Purpose |
 | :-- | :-- | :-- | :-- |
+| `POST` | `/api/auth/token` | credentials | Exchange client credentials for a short-lived token |
+| `DELETE` | `/api/auth/token` | issued token | Revoke the presented token |
 | `GET` | `/api/posts` | public¹ | List posts (filter by status, tag; paginate) |
 | `POST` | `/api/posts` | required | Create a post |
 | `GET` | `/api/posts/:idOrSlug` | public¹ | Fetch one post |
@@ -299,8 +332,9 @@ ADMIN_GITHUB_USERNAME=your-github-login
 If it is left empty, **no one** has admin access (the safe default for a public deployment).
 Everyone else who signs in with GitHub becomes a regular commenter.
 
-The same pattern applies to the automation API: `BLOG_API_TOKEN` unset means the
-token-authenticated API is disabled (the admin session still works).
+The same pattern applies to the automation API: with `BLOG_API_CLIENT_ID`/`BLOG_API_CLIENT_SECRET`
+unset the token endpoint does not exist, and with `BLOG_API_TOKEN` unset static-token auth is
+disabled (the admin session still works either way).
 
 ### Your domain (the callback domain is variable)
 
@@ -329,7 +363,9 @@ REDIS_URL
 GITHUB_CLIENT_ID
 GITHUB_CLIENT_SECRET
 ADMIN_GITHUB_USERNAME
-BLOG_API_TOKEN          # optional — enables the automation API
+BLOG_API_CLIENT_ID      # optional — enables fetching short-lived API tokens
+BLOG_API_CLIENT_SECRET  # optional — pairs with BLOG_API_CLIENT_ID
+BLOG_API_TOKEN          # optional — enables static-token API auth
 ```
 
 Apply database migrations before promoting a deployment. The GitHub OAuth callback must point at
@@ -344,6 +380,8 @@ vercel env add REDIS_URL production preview development
 vercel env add GITHUB_CLIENT_ID production preview development
 vercel env add GITHUB_CLIENT_SECRET production preview development
 vercel env add ADMIN_GITHUB_USERNAME production preview development
+vercel env add BLOG_API_CLIENT_ID production preview development
+vercel env add BLOG_API_CLIENT_SECRET production preview development
 vercel env add BLOG_API_TOKEN production preview development
 ```
 

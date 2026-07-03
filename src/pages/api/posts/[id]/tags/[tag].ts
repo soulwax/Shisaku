@@ -17,7 +17,7 @@ const validTagParam = (tag: string | undefined): string | null => {
 
 /** Adds a single tag. Idempotent: adding an existing tag is a no-op success. */
 export const PUT: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 
@@ -43,7 +43,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 
 /** Removes a single tag (case-insensitive). Idempotent: removing an absent tag succeeds. */
 export const DELETE: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 

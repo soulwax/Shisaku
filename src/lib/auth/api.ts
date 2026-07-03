@@ -1,11 +1,17 @@
-import { timingSafeEqual } from 'node:crypto';
 import { getEnv } from '../env';
+import {
+	isTokenIssuanceEnabled,
+	isValidIssuedToken,
+	timingSafeStringEqual,
+} from './api-tokens';
 import { isAuthorizedAdminUser } from './github';
 
 /**
- * Shared secret for the automation API (`/api/posts/**`). Like
- * `ADMIN_GITHUB_USERNAME`, it is unset by default, which disables token
- * authentication entirely — the safe default for a fresh deployment.
+ * Static shared secret for the automation API (`/api/posts/**`). Like
+ * `ADMIN_GITHUB_USERNAME`, it is unset by default, which disables static
+ * token authentication entirely — the safe default for a fresh deployment.
+ * For automation that should not hold a long-lived secret, prefer the
+ * short-lived tokens issued by `POST /api/auth/token` (see api-tokens.ts).
  */
 export const API_TOKEN_ENV = 'BLOG_API_TOKEN';
 
@@ -26,10 +32,7 @@ export const isValidApiToken = (
 		return false;
 	}
 
-	const providedBytes = Buffer.from(provided);
-	const expectedBytes = Buffer.from(configuredToken);
-
-	return providedBytes.length === expectedBytes.length && timingSafeEqual(providedBytes, expectedBytes);
+	return timingSafeStringEqual(provided, configuredToken);
 };
 
 export interface ApiRequestAuth {
@@ -40,18 +43,27 @@ export interface ApiRequestAuth {
 }
 
 /**
- * A request is authorized when it carries a valid `Authorization: Bearer`
- * token, or when it belongs to the signed-in admin's browser session.
+ * A request is authorized when it belongs to the signed-in admin's browser
+ * session, carries the static `BLOG_API_TOKEN`, or carries a short-lived
+ * token previously issued by `POST /api/auth/token`.
  */
-export const authorizeApiRequest = (
+export const authorizeApiRequest = async (
 	request: Request,
 	user: { id: string; username: string; email: string; role: string } | null,
 	configuredToken: string = getConfiguredApiToken(),
-): ApiRequestAuth => {
-	const isAdminSession = user !== null && isAuthorizedAdminUser(user);
+): Promise<ApiRequestAuth> => {
+	if (user !== null && isAuthorizedAdminUser(user)) {
+		return { authorized: true, adminUserId: user.id };
+	}
 
-	return {
-		authorized: isAdminSession || isValidApiToken(request.headers.get('authorization'), configuredToken),
-		adminUserId: isAdminSession ? user.id : null,
-	};
+	const header = request.headers.get('authorization');
+
+	if (isValidApiToken(header, configuredToken)) {
+		return { authorized: true, adminUserId: null };
+	}
+
+	const bearer = bearerTokenFrom(header);
+	const authorized = bearer !== null && isTokenIssuanceEnabled() && (await isValidIssuedToken(bearer));
+
+	return { authorized, adminUserId: null };
 };

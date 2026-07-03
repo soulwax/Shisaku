@@ -6,6 +6,11 @@ import {
 	isValidApiToken,
 } from '../src/lib/auth/api';
 
+// Keep these tests hermetic: disable the issued-token flow so
+// authorizeApiRequest never reaches for Redis, regardless of .env.local.
+process.env.BLOG_API_CLIENT_ID = '';
+process.env.BLOG_API_CLIENT_SECRET = '';
+
 const TOKEN = 'test-token-1234567890';
 
 const requestWith = (authorization?: string): Request =>
@@ -35,18 +40,21 @@ test('token auth is disabled when no token is configured', () => {
 	assert.equal(isValidApiToken('Bearer ', ''), false);
 });
 
-test('a valid bearer token authorizes the request without a session', () => {
-	const auth = authorizeApiRequest(requestWith(`Bearer ${TOKEN}`), null, TOKEN);
+test('a valid bearer token authorizes the request without a session', async () => {
+	const auth = await authorizeApiRequest(requestWith(`Bearer ${TOKEN}`), null, TOKEN);
 	assert.equal(auth.authorized, true);
 	assert.equal(auth.adminUserId, null);
 });
 
-test('requests without token or admin session are rejected', () => {
-	assert.equal(authorizeApiRequest(requestWith(), null, TOKEN).authorized, false);
-	assert.equal(authorizeApiRequest(requestWith('Bearer wrong'), null, TOKEN).authorized, false);
+test('requests without token or admin session are rejected', async () => {
+	assert.equal((await authorizeApiRequest(requestWith(), null, TOKEN)).authorized, false);
+	assert.equal(
+		(await authorizeApiRequest(requestWith('Bearer wrong'), null, TOKEN)).authorized,
+		false,
+	);
 });
 
-test('an admin session authorizes the request and exposes the author id', () => {
+test('an admin session authorizes the request and exposes the author id', async () => {
 	process.env.ADMIN_GITHUB_USERNAME = 'configured-admin';
 
 	const admin = {
@@ -55,13 +63,13 @@ test('an admin session authorizes the request and exposes the author id', () => 
 		email: 'admin@example.com',
 		role: 'admin',
 	};
-	const auth = authorizeApiRequest(requestWith(), admin, TOKEN);
+	const auth = await authorizeApiRequest(requestWith(), admin, TOKEN);
 
 	assert.equal(auth.authorized, true);
 	assert.equal(auth.adminUserId, admin.id);
 });
 
-test('a commenter session does not authorize write access', () => {
+test('a commenter session does not authorize write access', async () => {
 	process.env.ADMIN_GITHUB_USERNAME = 'configured-admin';
 
 	const commenter = {
@@ -71,10 +79,10 @@ test('a commenter session does not authorize write access', () => {
 		role: 'commenter',
 	};
 
-	assert.equal(authorizeApiRequest(requestWith(), commenter, TOKEN).authorized, false);
+	assert.equal((await authorizeApiRequest(requestWith(), commenter, TOKEN)).authorized, false);
 });
 
-test('a commenter session with a valid token is authorized but not the author', () => {
+test('a commenter session with a valid token is authorized but not the author', async () => {
 	process.env.ADMIN_GITHUB_USERNAME = 'configured-admin';
 
 	const commenter = {
@@ -83,7 +91,7 @@ test('a commenter session with a valid token is authorized but not the author', 
 		email: 'someone@example.com',
 		role: 'commenter',
 	};
-	const auth = authorizeApiRequest(requestWith(`Bearer ${TOKEN}`), commenter, TOKEN);
+	const auth = await authorizeApiRequest(requestWith(`Bearer ${TOKEN}`), commenter, TOKEN);
 
 	assert.equal(auth.authorized, true);
 	assert.equal(auth.adminUserId, null);

@@ -24,7 +24,7 @@ const parseNonNegativeInt = (value: string | null): number | undefined | null =>
 };
 
 export const GET: APIRoute = async ({ request, locals, url }) => {
-	const { authorized } = authorizeApiRequest(request, locals.user);
+	const { authorized } = await authorizeApiRequest(request, locals.user);
 	const status = url.searchParams.get('status') ?? 'published';
 
 	if (!LIST_STATUSES.has(status)) {
@@ -57,7 +57,7 @@ export const GET: APIRoute = async ({ request, locals, url }) => {
 };
 
 export const POST: APIRoute = async ({ request, locals }) => {
-	const auth = authorizeApiRequest(request, locals.user);
+	const auth = await authorizeApiRequest(request, locals.user);
 
 	if (!auth.authorized) {
 		return unauthorizedResponse();

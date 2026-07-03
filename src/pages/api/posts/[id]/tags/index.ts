@@ -13,7 +13,7 @@ import { authorizeApiRequest } from '../../../../../lib/auth/api';
 import { getPostByIdOrSlug, patchPost } from '../../../../../lib/posts';
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
-	const { authorized } = authorizeApiRequest(request, locals.user);
+	const { authorized } = await authorizeApiRequest(request, locals.user);
 	const post = await getPostByIdOrSlug(params.id ?? '');
 
 	if (!post || (post.status !== 'published' && !authorized)) {
@@ -24,7 +24,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const POST: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 
@@ -57,7 +57,7 @@ export const POST: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 

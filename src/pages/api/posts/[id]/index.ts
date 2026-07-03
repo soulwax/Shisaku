@@ -14,7 +14,7 @@ import { authorizeApiRequest } from '../../../../lib/auth/api';
 import { deletePost, getPostByIdOrSlug, patchPost, updatePost } from '../../../../lib/posts';
 
 export const GET: APIRoute = async ({ params, request, locals }) => {
-	const { authorized } = authorizeApiRequest(request, locals.user);
+	const { authorized } = await authorizeApiRequest(request, locals.user);
 	const post = await getPostByIdOrSlug(params.id ?? '');
 
 	// Drafts 404 for unauthenticated callers so their existence is not leaked.
@@ -26,7 +26,7 @@ export const GET: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const PUT: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 
@@ -68,7 +68,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const PATCH: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 
@@ -99,7 +99,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
 };
 
 export const DELETE: APIRoute = async ({ params, request, locals }) => {
-	if (!authorizeApiRequest(request, locals.user).authorized) {
+	if (!(await authorizeApiRequest(request, locals.user)).authorized) {
 		return unauthorizedResponse();
 	}
 
