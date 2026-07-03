@@ -1,9 +1,11 @@
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { db } from '../db/client';
 import { posts, type NewPost, type Post } from '../db/schema';
 import { estimateReadMinutes, normalizeMarkdownEscapes } from './markdown';
 export { normalizeSlug } from './slugs';
 import { normalizeSlug } from './slugs';
+export { normalizeTags } from './tags';
+import { applyTagChanges, normalizeTags, type TagChanges } from './tags';
 
 export const POST_STATUSES = ['draft', 'published'] as const;
 export type PostStatus = (typeof POST_STATUSES)[number];
@@ -53,11 +55,6 @@ const getAvailableSlug = async (base: string, exceptId?: string): Promise<string
 	throw new Error('Unable to generate a unique slug.');
 };
 
-export const normalizeTags = (value: string | string[] | undefined): string[] => {
-	const values = Array.isArray(value) ? value : (value ?? '').split(',');
-	return [...new Set(values.map((tag) => tag.trim().replace(/^\+/, '')).filter(Boolean))];
-};
-
 const toNewPost = (input: PostInput, slug: string): NewPost => {
 	const bodyMarkdown = normalizeMarkdownEscapes(input.bodyMarkdown);
 
@@ -96,13 +93,58 @@ export const getPublishedPostBySlug = async (slug: string): Promise<Post | null>
 export const listAllPosts = async (): Promise<Post[]> =>
 	db.select().from(posts).orderBy(desc(posts.updatedAt));
 
+export const DEFAULT_LIST_LIMIT = 20;
+export const MAX_LIST_LIMIT = 100;
+
+export interface ListPostsOptions {
+	status?: PostStatus | 'all';
+	tag?: string;
+	limit?: number;
+	offset?: number;
+}
+
+export const listPosts = async (options: ListPostsOptions = {}): Promise<Post[]> => {
+	const conditions = [];
+	const status = options.status ?? 'all';
+
+	if (status !== 'all') {
+		conditions.push(eq(posts.status, status));
+	}
+
+	if (options.tag) {
+		conditions.push(sql`${posts.tags} @> ${JSON.stringify([options.tag])}::jsonb`);
+	}
+
+	const limit = Math.min(Math.max(Math.trunc(options.limit ?? DEFAULT_LIST_LIMIT), 1), MAX_LIST_LIMIT);
+	const offset = Math.max(Math.trunc(options.offset ?? 0), 0);
+
+	return db
+		.select()
+		.from(posts)
+		.where(conditions.length > 0 ? and(...conditions) : undefined)
+		.orderBy(desc(posts.pubDate))
+		.limit(limit)
+		.offset(offset);
+};
+
 export const getPostById = async (id: string): Promise<Post | null> => {
 	const [post] = await db.select().from(posts).where(eq(posts.id, id)).limit(1);
 	return post ?? null;
 };
 
+export const getPostBySlug = async (slug: string): Promise<Post | null> => {
+	const [post] = await db.select().from(posts).where(eq(posts.slug, slug)).limit(1);
+	return post ?? null;
+};
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const getPostByIdOrSlug = async (idOrSlug: string): Promise<Post | null> =>
+	UUID_PATTERN.test(idOrSlug) ? getPostById(idOrSlug) : getPostBySlug(idOrSlug);
+
 export const createPost = async (input: PostInput): Promise<Post> => {
-	const slug = await getAvailableSlug(slugBaseFromTitle(input.title));
+	const requestedBase = input.slug ? trimSlug(normalizeSlug(input.slug)) : '';
+	const slug = await getAvailableSlug(requestedBase || slugBaseFromTitle(input.title));
 	const [post] = await db.insert(posts).values(toNewPost(input, slug)).returning();
 	return post;
 };
@@ -136,6 +178,41 @@ export const updatePost = async (id: string, input: PostInput): Promise<Post> =>
 	}
 
 	return post;
+};
+
+export interface PostPatch extends TagChanges {
+	title?: string;
+	slug?: string;
+	description?: string;
+	bodyMarkdown?: string;
+	heroImage?: string | null;
+	status?: PostStatus;
+	pubDate?: Date;
+}
+
+/**
+ * Partially updates a post: only the provided fields change, the rest are
+ * carried over from the stored post. Tag fields follow applyTagChanges
+ * semantics (`tags` replaces, `addTags`/`removeTags` adjust incrementally).
+ */
+export const patchPost = async (id: string, patch: PostPatch): Promise<Post> => {
+	const current = await getPostById(id);
+
+	if (!current) {
+		throw new Error('Post not found.');
+	}
+
+	return updatePost(id, {
+		title: patch.title ?? current.title,
+		slug: patch.slug,
+		description: patch.description ?? current.description,
+		bodyMarkdown: patch.bodyMarkdown ?? current.bodyMarkdown,
+		heroImage: patch.heroImage === undefined ? current.heroImage : patch.heroImage,
+		tags: applyTagChanges(current.tags, patch),
+		status: patch.status ?? (current.status as PostStatus),
+		pubDate: patch.pubDate ?? current.pubDate,
+		authorId: current.authorId,
+	});
 };
 
 export const deletePost = async (id: string): Promise<void> => {
